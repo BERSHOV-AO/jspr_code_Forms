@@ -60,6 +60,10 @@ public class Main {
                         continue;
                     }
 
+                    // Параметры которые должны придти, - это метод, путь, и само содержимое(тело запроса).
+
+                    // Проверяем, содержится ли тот метод, который к нам пришел в том списке,
+                    // который допустим для нашего сервера, у нас допустимые GET, POST.
                     final var method = requestLine[0];
                     if (!allowedMethod.contains(method)) {
                         badRequest(out);
@@ -67,21 +71,69 @@ public class Main {
                     }
                     System.out.println(method);
 
+                    // Определяем путь, по которому к нам обратились, проверяем первый символ в пути. "/"
+                    // Если данный символ отсутствует, то вызываем метод badRequest(out);
                     final var path = requestLine[1];
                     if (!path.startsWith("/")) {
                         badRequest(out);
                     }
                     System.out.println(path);
 
+                    // После этого считываем заголовки (ищем заголовки)
+                    final var headersDelimiter = new byte[]{'\r', '\n', '\r', '\n'};
+                    final var headersStart = requestLineEnd + requestLineDelimiter.length;
+                    final var headersEnd = indexOf(buffer, headersDelimiter, headersStart, read);
+                    if (headersEnd == -1) {
+                        badRequest(out);
+                        continue;
+                    }
 
+                    // отматываем на начала буфера
+                    in.reset();
+                    // пропускаем requestLine
+                    in.skip(headersStart);
+
+                    final var headersBytes = in.readNBytes(headersEnd - headersStart);
+                    final var headers = Arrays.asList(new String(headersBytes).split("\r\n"));
+                    System.out.println(headers);
+
+                    // для GET тела нет
+                    if (!method.equals(GET)) {
+                        in.skip(headersDelimiter.length);
+                        // вычитываем Content-Length, что бы прочитать body
+                        final var contentLength = extractHeader(headers, "Content-Length");
+                        if (contentLength.isPresent()) {
+                            final var length = Integer.parseInt(contentLength.get());
+                            final var bodyBytes = in.readNBytes(length);
+
+                            final var body = new String(bodyBytes);
+                            System.out.println(body);
+                        }
+                    }
+
+                    out.write((
+                            "HTTP/1.1 200 OK\r\n" +
+                                    "Content-Length: 0\r\n" +
+                                    "Connection: close\r\n" +
+                                    "\r\n"
+                    ).getBytes());
+                    out.flush();
                 }
             }
-
         } catch (IOException e) {
             e.printStackTrace();
         }
 
     }
+
+    private static Optional<String> extractHeader(List<String> headers, String header) {
+        return headers.stream()
+                .filter(o -> o.startsWith(header))
+                .map(o -> o.substring(o.indexOf(" ")))
+                .map(String::trim)
+                .findFirst();
+    }
+
 
     private static void badRequest(BufferedOutputStream out) throws IOException {
         out.write((
