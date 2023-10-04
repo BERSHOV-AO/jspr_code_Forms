@@ -27,13 +27,15 @@ public class Main {
                     // Лимит на request line + заголовки, по сути, лимит на количество символов.
                     final var limit = 4096;
 
-
                     // В классе BufferedInputStream метод mark(limit) используется для
                     // установки метки (пометки) в текущей позиции ввода с ограничением на размер буфера.
                     // Когда вызывается метод mark(limit) с аргументом limit, BufferedInputStream сохраняет
                     // внутреннее состояние буфера чтения и устанавливает метку в текущей позиции чтения с
                     // ограничением на размер буфера, указанным аргументом limit. Это позволяет вам вернуться к
                     // этому состоянию позже, используя метод reset().
+                    // Используется для потока на чтение, он отмечает количество прочитанной информации, которая в
+                    // нашем потоке будет считана, он дет в связке с reset, что бы потом прочитанную информацию можно
+                    // было бы прочитать еще раз. Для удобства навигирования по информации которая нам пришла.
                     in.mark(limit);
                     // У нас есть буфер, в который мы будем считывать информацию
                     final var buffer = new byte[limit];
@@ -41,12 +43,35 @@ public class Main {
 
                     // Ищем request line
                     final var requestLineDelimiter = new byte[]{'\r', '\n'};
+                    // indexOf находим где заканчивается requestLineDelimiter
                     final var requestLineEnd = indexOf(buffer, requestLineDelimiter, 0, read);
+                    // Если мы не смогли найти конец requestLineDelimiter, нам вернулся индекс -1, запрос сформирован
+                    // не корректно, то мы обращаемся к методу badRequest(out);
                     if (requestLineEnd == -1) {
                         badRequest(out);
                         continue;
                     }
 
+                    // Зачитываем request line, он должен состоять из трех параметров
+                    final var requestLine = new String(Arrays.copyOf(buffer, requestLineEnd)).split(" ");
+                    // если не три параметра, запрос сформирован не корректно, вызываем badRequest(out);
+                    if (requestLine.length != 3) {
+                        badRequest(out);
+                        continue;
+                    }
+
+                    final var method = requestLine[0];
+                    if (!allowedMethod.contains(method)) {
+                        badRequest(out);
+                        continue;
+                    }
+                    System.out.println(method);
+
+                    final var path = requestLine[1];
+                    if (!path.startsWith("/")) {
+                        badRequest(out);
+                    }
+                    System.out.println(path);
 
 
                 }
@@ -67,4 +92,20 @@ public class Main {
         ).getBytes());
         out.flush();
     }
+
+
+    private static int indexOf(byte[] array, byte[] target, int start, int max) {
+
+        outer:
+        for (int i = start; i < max - target.length + 1; i++) {
+            for (int j = 0; j < target.length; j++) {
+                if (array[i + j] != target[j]) {
+                    continue outer;
+                }
+            }
+            return i;
+        }
+        return -1;
+    }
 }
+
