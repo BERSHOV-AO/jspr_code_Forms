@@ -123,7 +123,6 @@ public class Main {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 
     private static Optional<String> extractHeader(List<String> headers, String header) {
@@ -134,7 +133,6 @@ public class Main {
                 .findFirst();
     }
 
-
     private static void badRequest(BufferedOutputStream out) throws IOException {
         out.write((
                 "HTTP/1.1 400 Bad Request\r\n" +
@@ -144,7 +142,6 @@ public class Main {
         ).getBytes());
         out.flush();
     }
-
 
     private static int indexOf(byte[] array, byte[] target, int start, int max) {
 
