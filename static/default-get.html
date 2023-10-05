@@ -8,7 +8,10 @@
   <title>Document</title>
 </head>
 <body>
-  <form action="http://localhost:9999?value=get-value" method="post" enctype="multipart/form-data">
+<!-- <form action="http://localhost:9999?value=get-value" method="post" enctype="multipart/form-data"> -->
+
+<!-- form action="http://localhost:9999" method="post" enctype="text/plain"> получили распарсенные данные, но картинку не получили, тольк название -->
+ <form action="http://localhost:9999?value=get-value" method="post" enctype="multipart/form-data">
       <input> <!-- without name - никуда не отправится -->
       <input name="title">
       <input name="value">
